@@ -8,53 +8,37 @@
     <style>
     	@font-face {
         	font-family: 'lexend';
-            src: url(lexend-regular.ttf);
-        }
+            src: url(lexend-regular);
+		}
         body {
-            background-color: #111;
+            background-color: #f8f9fa;
             font-family: 'lexend';
-            color: white;
         }
         .leaderboard {
-            background-color: #222;
+            background-color: #e9ecef;
             padding: 15px;
-            border-radius: 5px;
+            border-radius: 8px;
         }
         .table-container {
             max-height: 400px;
             overflow-y: auto;
         }
-        .card-header {
-            background-color: #222;
-            color: white;
-        }
-        .btn {
-            background-color: #222;
-            color: white;
-        }
-        .btn:hover {
-            background-color: #333;
-        }
-        .table {
-            background-color: #222;
-            color: #fff;
-        }
     </style>
 </head>
 <body>
     <div class="container my-4">
-        <h1 class="text-center">match fixer by soulz</h1>
+        <h1 class="text-center text-primary">match fixer by soulz</h1>
 
         <!-- Input Section -->
         <div class="card mb-4">
-            <div class="card-header">add participants</div>
+            <div class="card-header bg-primary text-white">add participants</div>
             <div class="card-body">
                 <div class="mb-3">
-                    <label for="participantName" class="form-label">participant name:</label>
+                    <label for="participantName" class="form-label">participants name:</label>
                     <input type="text" id="participantName" class="form-control">
                 </div>
-                <button id="addParticipant" class="btn"> add</button>
-                <button id="resetParticipants" class="btn">reset</button>
+                <button id="addParticipant" class="btn btn-success">add</button>
+                <button id="resetParticipants" class="btn btn-danger">reset</button>
                 <div class="mt-3">
                     <p><strong>participants:</strong></p>
                     <ul id="participantsList" class="list-group"></ul>
@@ -64,10 +48,10 @@
 
         <!-- Fight Match Fixer Section -->
         <div class="card mb-4">
-            <div class="card-header">match fixer</div>
+            <div class="card-header bg-secondary text-white">match fixer</div>
             <div class="card-body">
-                <button id="generateMatches" class="btn mb-3">set matches</button>
-                <button id="reshuffleMatches" class="btn mb-3">reshuffle matches</button>
+                <button id="generateMatches" class="btn btn-primary mb-3">set matches</button>
+                <button id="reshuffleMatches" class="btn btn-warning mb-3">reshuffle matches</button>
                 <div class="table-container">
                     <table class="table table-striped">
                         <thead>
@@ -84,7 +68,7 @@
 
         <!-- Results Section -->
         <div class="card mb-4">
-            <div class="card-header">match results</div>
+            <div class="card-header bg-success text-white">match results</div>
             <div class="card-body">
                 <div id="resultsSection"></div>
             </div>
@@ -178,7 +162,7 @@
                 </div>`
             ).join('');
 
-            resultsSection.insertAdjacentHTML('beforeend', '<button class="btn mt-3" onclick="calculatePoints()">Update Leaderboard</button>');
+            resultsSection.insertAdjacentHTML('beforeend', '<button class="btn btn-success mt-3" onclick="calculatePoints()">Update Leaderboard</button>');
         };
 
         const calculatePoints = () => {
