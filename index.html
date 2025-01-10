@@ -66,18 +66,15 @@
             </div>
         </div>
 
-        <!-- Timer Section (Moved to the top) -->
+        <!-- Timer Section (Always available) -->
         <div class="card mb-4">
             <div class="card-header bg-info text-white">match timer</div>
             <div class="card-body">
-                <select id="selectedMatch" class="form-select">
-                    <option value="">select match</option>
-                    <option value="none">none</option>
-                </select>
                 <p><strong>time remaining: </strong><span id="timer">00:00</span></p>
-                <button id="startTimer" class="btn btn-success" disabled>start timer</button>
+                <button id="startTimer" class="btn btn-success">start timer</button>
                 <button id="stopTimer" class="btn btn-danger" disabled>stop timer</button>
                 <button id="pauseTimer" class="btn btn-warning" disabled>pause timer</button>
+                <button id="restartTimer" class="btn btn-secondary" disabled>restart timer</button>
             </div>
         </div>
 
@@ -110,9 +107,8 @@
         const matches = [];
         const points = {};
         let timerInterval = null;
-        let timeRemaining = 90; // 1:30s minutes timer for each match
-        let selectedMatchIndex = -1; // Index of the selected match
-        let matchInProgress = false; // If the timer is running for the selected match
+        let timeRemaining = 90; // 1:30 minutes timer for each match
+        let matchInProgress = false; // If the timer is running or not
 
         const addParticipant = () => {
             const name = document.getElementById('participantName').value.trim();
@@ -142,7 +138,7 @@
 
         const generateMatches = () => {
             if (participants.length % 2 !== 0) {
-                alert('uneven number of participants. please add one more.');
+                alert('Uneven number of participants. Please add one more.');
                 return;
             }
 
@@ -151,18 +147,12 @@
 
             let roundCounter = 1;
             for (let i = 0; i < matchups.length; i += 2) {
-                // Ensure no participant grapples in consecutive rounds
-                if (i > 0 && matchups[i - 1] === matchups[i]) {
-                    i--;
-                    continue;
-                }
                 matches.push({ round: roundCounter, pair: [matchups[i], matchups[i + 1]] });
                 roundCounter++;
             }
 
             updateMatchSchedule();
             updateResultsSection();
-            updateMatchSelector();
         };
 
         const reshuffleMatches = () => {
@@ -188,13 +178,6 @@
                         <option value="draw">draw</option>
                     </select>
                 </div>`
-            ).join('');
-        };
-
-        const updateMatchSelector = () => {
-            const selector = document.getElementById('selectedMatch');
-            selector.innerHTML = '<option value="none">None</option>' + matches.map((match, index) => 
-                `<option value="${index}">${match.pair[0]} vs ${match.pair[1]}</option>`
             ).join('');
         };
 
@@ -224,54 +207,72 @@
         };
 
         const startTimer = () => {
-            if (selectedMatchIndex === -1 || selectedMatchIndex === "none") return;
-            const match = matches[selectedMatchIndex];
-            timeRemaining = 90; // Reset timer to 3 minutes
+            if (matchInProgress) {
+                clearInterval(timerInterval); // Stop any running timer before starting a new one
+            }
+            timeRemaining = 90; // Set timer to 90 seconds
             matchInProgress = true;
             document.getElementById('startTimer').disabled = true;
             document.getElementById('stopTimer').disabled = false;
             document.getElementById('pauseTimer').disabled = false;
+            document.getElementById('restartTimer').disabled = false;
 
             timerInterval = setInterval(() => {
                 if (timeRemaining <= 0) {
                     clearInterval(timerInterval);
                     matchInProgress = false;
-                    document.getElementById('startTimer').disabled = true;
+                    document.getElementById('startTimer').disabled = false;
                     document.getElementById('stopTimer').disabled = true;
                     document.getElementById('pauseTimer').disabled = true;
+                    document.getElementById('restartTimer').disabled = true;
                 } else {
                     timeRemaining--;
-                    document.getElementById('timer').textContent = formatTime(timeRemaining);
+                    updateTimerDisplay();
                 }
             }, 1000);
+        };
+
+        const updateTimerDisplay = () => {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            document.getElementById('timer').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         };
 
         const stopTimer = () => {
             clearInterval(timerInterval);
             matchInProgress = false;
-            timeRemaining = 90; // Reset timer to 3 minutes
-            document.getElementById('timer').textContent = formatTime(timeRemaining);
             document.getElementById('startTimer').disabled = false;
             document.getElementById('stopTimer').disabled = true;
             document.getElementById('pauseTimer').disabled = true;
+            document.getElementById('restartTimer').disabled = true;
         };
 
         const pauseTimer = () => {
+            clearInterval(timerInterval);
+            matchInProgress = false;
+            document.getElementById('startTimer').disabled = false;
+            document.getElementById('stopTimer').disabled = false;
+            document.getElementById('pauseTimer').disabled = true;
+            document.getElementById('restartTimer').disabled = false;
+        };
+
+        const restartTimer = () => {
+            timeRemaining = 90;
+            updateTimerDisplay();
             if (matchInProgress) {
                 clearInterval(timerInterval);
-                matchInProgress = false;
-                document.getElementById('startTimer').disabled = false;
-                document.getElementById('pauseTimer').disabled = true;
+                startTimer();
             }
         };
 
-        const formatTime = (seconds) => {
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        // Helper Functions
+        const shuffleParticipants = (array) => {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
         };
-
-        const shuffleParticipants = (arr) => arr.sort(() => Math.random() - 0.5);
 
         document.getElementById('addParticipant').addEventListener('click', addParticipant);
         document.getElementById('resetParticipants').addEventListener('click', resetParticipants);
@@ -280,16 +281,7 @@
         document.getElementById('startTimer').addEventListener('click', startTimer);
         document.getElementById('stopTimer').addEventListener('click', stopTimer);
         document.getElementById('pauseTimer').addEventListener('click', pauseTimer);
-        document.getElementById('selectedMatch').addEventListener('change', (e) => {
-            selectedMatchIndex = e.target.value;
-            if (selectedMatchIndex === "none") {
-                timeRemaining = 90;
-                document.getElementById('timer').textContent = formatTime(timeRemaining);
-                document.getElementById('startTimer').disabled = false;
-                document.getElementById('stopTimer').disabled = true;
-                document.getElementById('pauseTimer').disabled = true;
-            }
-        });
+        document.getElementById('restartTimer').addEventListener('click', restartTimer);
     </script>
 </body>
 </html>
