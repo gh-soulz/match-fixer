@@ -6,10 +6,10 @@
     <title>match fixer by soulz</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-    	@font-face {
+        @font-face {
             font-family: 'lexend';
             src: url(lexend-regular.ttf);
-		}
+        }
         body {
             background-color: #f8f9fa;
             font-family: 'lexend';
@@ -66,11 +66,27 @@
             </div>
         </div>
 
-        <!-- Results Section -->
+        <!-- Timer Section (Moved to the top) -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">match timer</div>
+            <div class="card-body">
+                <select id="selectedMatch" class="form-select">
+                    <option value="">select match</option>
+                    <option value="none">none</option>
+                </select>
+                <p><strong>time remaining: </strong><span id="timer">00:00</span></p>
+                <button id="startTimer" class="btn btn-success" disabled>start timer</button>
+                <button id="stopTimer" class="btn btn-danger" disabled>stop timer</button>
+                <button id="pauseTimer" class="btn btn-warning" disabled>pause timer</button>
+            </div>
+        </div>
+
+        <!-- Results Section (Moved to the bottom) -->
         <div class="card mb-4">
             <div class="card-header bg-success text-white">match results</div>
             <div class="card-body">
                 <div id="resultsSection"></div>
+                <button class="btn btn-success mt-3" onclick="calculatePoints()">Update Leaderboard</button>
             </div>
         </div>
 
@@ -93,6 +109,10 @@
         const participants = [];
         const matches = [];
         const points = {};
+        let timerInterval = null;
+        let timeRemaining = 90; // 1:30s minutes timer for each match
+        let selectedMatchIndex = -1; // Index of the selected match
+        let matchInProgress = false; // If the timer is running for the selected match
 
         const addParticipant = () => {
             const name = document.getElementById('participantName').value.trim();
@@ -122,19 +142,27 @@
 
         const generateMatches = () => {
             if (participants.length % 2 !== 0) {
-                alert('Uneven number of participants. Please add one more.');
+                alert('uneven number of participants. please add one more.');
                 return;
             }
 
             matches.length = 0;
-            for (let round = 1; round <= 4; round++) {
-                const shuffled = participants.sort(() => Math.random() - 0.5);
-                for (let i = 0; i < shuffled.length; i += 2) {
-                    matches.push({ round, pair: [shuffled[i], shuffled[i + 1]] });
+            const matchups = shuffleParticipants([...participants]);
+
+            let roundCounter = 1;
+            for (let i = 0; i < matchups.length; i += 2) {
+                // Ensure no participant grapples in consecutive rounds
+                if (i > 0 && matchups[i - 1] === matchups[i]) {
+                    i--;
+                    continue;
                 }
+                matches.push({ round: roundCounter, pair: [matchups[i], matchups[i + 1]] });
+                roundCounter++;
             }
+
             updateMatchSchedule();
             updateResultsSection();
+            updateMatchSelector();
         };
 
         const reshuffleMatches = () => {
@@ -155,14 +183,19 @@
                     <p><strong>Round ${match.round}:</strong> ${match.pair[0]} vs ${match.pair[1]}</p>
                     <select id="result${index}" class="form-select">
                         <option value="">Select Result</option>
-                        <option value="${match.pair[0]}">Winner: ${match.pair[0]}</option>
-                        <option value="${match.pair[1]}">Winner: ${match.pair[1]}</option>
-                        <option value="draw">Draw</option>
+                        <option value="${match.pair[0]}">winner: ${match.pair[0]}</option>
+                        <option value="${match.pair[1]}">winner: ${match.pair[1]}</option>
+                        <option value="draw">draw</option>
                     </select>
                 </div>`
             ).join('');
+        };
 
-            resultsSection.insertAdjacentHTML('beforeend', '<button class="btn btn-success mt-3" onclick="calculatePoints()">Update Leaderboard</button>');
+        const updateMatchSelector = () => {
+            const selector = document.getElementById('selectedMatch');
+            selector.innerHTML = '<option value="none">None</option>' + matches.map((match, index) => 
+                `<option value="${index}">${match.pair[0]} vs ${match.pair[1]}</option>`
+            ).join('');
         };
 
         const calculatePoints = () => {
@@ -190,10 +223,73 @@
             ).join('');
         };
 
+        const startTimer = () => {
+            if (selectedMatchIndex === -1 || selectedMatchIndex === "none") return;
+            const match = matches[selectedMatchIndex];
+            timeRemaining = 90; // Reset timer to 3 minutes
+            matchInProgress = true;
+            document.getElementById('startTimer').disabled = true;
+            document.getElementById('stopTimer').disabled = false;
+            document.getElementById('pauseTimer').disabled = false;
+
+            timerInterval = setInterval(() => {
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    matchInProgress = false;
+                    document.getElementById('startTimer').disabled = true;
+                    document.getElementById('stopTimer').disabled = true;
+                    document.getElementById('pauseTimer').disabled = true;
+                } else {
+                    timeRemaining--;
+                    document.getElementById('timer').textContent = formatTime(timeRemaining);
+                }
+            }, 1000);
+        };
+
+        const stopTimer = () => {
+            clearInterval(timerInterval);
+            matchInProgress = false;
+            timeRemaining = 90; // Reset timer to 3 minutes
+            document.getElementById('timer').textContent = formatTime(timeRemaining);
+            document.getElementById('startTimer').disabled = false;
+            document.getElementById('stopTimer').disabled = true;
+            document.getElementById('pauseTimer').disabled = true;
+        };
+
+        const pauseTimer = () => {
+            if (matchInProgress) {
+                clearInterval(timerInterval);
+                matchInProgress = false;
+                document.getElementById('startTimer').disabled = false;
+                document.getElementById('pauseTimer').disabled = true;
+            }
+        };
+
+        const formatTime = (seconds) => {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        };
+
+        const shuffleParticipants = (arr) => arr.sort(() => Math.random() - 0.5);
+
         document.getElementById('addParticipant').addEventListener('click', addParticipant);
         document.getElementById('resetParticipants').addEventListener('click', resetParticipants);
         document.getElementById('generateMatches').addEventListener('click', generateMatches);
         document.getElementById('reshuffleMatches').addEventListener('click', reshuffleMatches);
+        document.getElementById('startTimer').addEventListener('click', startTimer);
+        document.getElementById('stopTimer').addEventListener('click', stopTimer);
+        document.getElementById('pauseTimer').addEventListener('click', pauseTimer);
+        document.getElementById('selectedMatch').addEventListener('change', (e) => {
+            selectedMatchIndex = e.target.value;
+            if (selectedMatchIndex === "none") {
+                timeRemaining = 90;
+                document.getElementById('timer').textContent = formatTime(timeRemaining);
+                document.getElementById('startTimer').disabled = false;
+                document.getElementById('stopTimer').disabled = true;
+                document.getElementById('pauseTimer').disabled = true;
+            }
+        });
     </script>
 </body>
 </html>
